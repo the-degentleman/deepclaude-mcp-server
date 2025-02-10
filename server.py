@@ -3,12 +3,14 @@ from enum import Enum
 from mcp.server.fastmcp import FastMCP
 import httpx
 import os
-from config import Settings
+from config import Settings, ProviderType
 from pydantic import BaseModel
 from providers.base import BaseProvider, LLMProvider, LLMError
 from providers.deepseek import DeepSeekProvider
+from formatters import format_reasoning_response
+import logging
 
-
+logger = logging.getLogger(__name__)
 # load_dotenv()
 
 DEEPSEEK_API_KEY = "enter your api key"
@@ -17,12 +19,11 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "enter your openrouter key"
 
 mcp = FastMCP("deepseek-reasoner-claude")
 
-
-class ProviderType(Enum):
-    DEEPSEEK = "deepseek"
-    OPENROUTER = "openrouter"
-    DEEPINFRA = "deepinfra"
-    CUSTOM = "custom"
+settings = Settings()
+provider = DeepSeekProvider(
+    api_key=settings.deepseek_api_key,
+    base_url=settings.custom_api_base or "https://api.deepseek.com"
+)
 
 class Settings(BaseModel):
     default_provider: ProviderType = ProviderType.DEEPSEEK
@@ -76,28 +77,24 @@ class OpenRouterProvider(BaseProvider):
 @mcp.tool()
 async def reason(query: dict) -> str:
     """
-    Process a query using DeepSeek's R1 reasoning engine and prepare it for integration with Claude.
-
-    DeepSeek R1 leverages advanced reasoning capabilities that naturally evolved from large-scale 
-    reinforcement learning, enabling sophisticated reasoning behaviors. The output is enclosed 
-    within `<ant_thinking>` tags to align with Claude's thought processing framework.
-
+    Process a query using DeepSeek's R1 reasoning engine.
+    
     Args:
-        query (dict): Contains the following keys:
-            - context (str): Optional background information for the query.
-            - question (str): The specific question to be analyzed.
-
+        query (dict): Contains:
+            - context (str): Background information
+            - question (str): The query to analyze
+    
     Returns:
-        str: The reasoning output from DeepSeek, formatted with `<ant_thinking>` tags for seamless use with Claude.
+        str: Reasoning output formatted for Claude
     """
     try:
-        provider = get_provider(Settings().default_provider)
-        reasoning = await provider.generate_reasoning(query)
+        # Combine context and question if both provided
+        prompt = f"{query.get('context', '')}\n\nQuestion: {query['question']}"
+        reasoning = await provider.generate_reasoning(prompt)
         return format_reasoning_response(reasoning)
-    except LLMError as e:
-        return format_error_response(e)
     except Exception as e:
-        return format_error_response(LLMError("unknown", str(e)))
+        logger.error(f"Reasoning failed: {e}")
+        return f"<error>Failed to generate reasoning: {e}</error>"
 
 
 if __name__ == "__main__":

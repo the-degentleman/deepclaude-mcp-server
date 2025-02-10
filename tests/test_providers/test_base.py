@@ -2,6 +2,7 @@ import pytest
 import httpx
 from unittest.mock import AsyncMock, patch
 from providers.base import BaseProvider, LLMError
+from providers.errors import AuthenticationError, RateLimitError
 
 # Change from test class to fixture
 @pytest.fixture
@@ -60,4 +61,36 @@ async def test_make_request_error(test_provider):
     with patch('httpx.AsyncClient', return_value=mock_client):
         with pytest.raises(LLMError) as exc_info:
             await test_provider._make_request({"test": "payload"})
-        assert str(exc_info.value) == "API error: Test error" 
+        assert str(exc_info.value) == "API error: Test error"
+
+@pytest.mark.asyncio
+async def test_authentication_error(test_provider):
+    mock_response = AsyncMock()
+    mock_response.status_code = 401
+    
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.stream = AsyncMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=mock_response)
+    ))
+    
+    with patch('httpx.AsyncClient', return_value=mock_client):
+        with pytest.raises(AuthenticationError) as exc_info:
+            await test_provider._make_request({"test": "payload"})
+        assert "Invalid API key" in str(exc_info.value)
+
+@pytest.mark.asyncio
+async def test_rate_limit_error(test_provider):
+    mock_response = AsyncMock()
+    mock_response.status_code = 429
+    
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.stream = AsyncMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=mock_response)
+    ))
+    
+    with patch('httpx.AsyncClient', return_value=mock_client):
+        with pytest.raises(RateLimitError) as exc_info:
+            await test_provider._make_request({"test": "payload"})
+        assert "Rate limit exceeded" in str(exc_info.value) 

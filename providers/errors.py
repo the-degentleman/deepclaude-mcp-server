@@ -13,4 +13,20 @@ class APIError(LLMProviderError):
 
 class RateLimitError(APIError):
     """Rate limit exceeded"""
+    pass
+
+class AuthenticationError(APIError):
+    """Invalid or missing API key"""
+    pass
+
+class NetworkError(LLMProviderError):
+    """Network-related errors"""
+    pass
+
+class TimeoutError(NetworkError):
+    """Request timed out"""
+    pass
+
+class InvalidResponseError(LLMProviderError):
+    """Invalid response from provider"""
     pass 
