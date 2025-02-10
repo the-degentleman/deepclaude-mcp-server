@@ -1,5 +1,9 @@
-from pydantic import BaseSettings
-from providers.base import ProviderType
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from enum import Enum
+
+class ProviderType(str, Enum):
+    DEEPSEEK = "deepseek"
+    OPENROUTER = "openrouter"
 
 class Settings(BaseSettings):
     deepseek_api_key: str | None = None
@@ -8,7 +12,6 @@ class Settings(BaseSettings):
     custom_api_key: str | None = None
     custom_api_base: str | None = None
     
-    default_provider: ProviderType = ProviderType.DEEPSEEK
+    default_provider: ProviderType = ProviderType.OPENROUTER
     
-    class Config:
-        env_file = ".env" 
+    model_config = SettingsConfigDict(env_file=".env") 

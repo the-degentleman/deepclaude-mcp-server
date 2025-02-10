@@ -1,6 +1,6 @@
-from base import BaseProvider
+from providers.base import BaseProvider
 
-class DeepseekProvider(BaseProvider):
+class DeepSeekProvider(BaseProvider):
     def __init__(self, api_key: str):
         super().__init__(
             api_key=api_key,
