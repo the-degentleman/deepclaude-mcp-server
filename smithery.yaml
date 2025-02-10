@@ -6,11 +6,30 @@ startCommand:
     # JSON Schema defining the configuration options for the MCP.
     type: object
     required:
-      - deepseekApiKey
+      - defaultProvider
     properties:
+      defaultProvider:
+        type: string
+        enum: [deepseek, openrouter, deepinfra, custom]
+        description: Default LLM provider to use
       deepseekApiKey:
         type: string
-        description: The API key for accessing the DeepSeek API.
+        description: DeepSeek API key
+      openrouterApiKey:
+        type: string
+        description: OpenRouter API key
+      deepinfraApiKey:
+        type: string
+        description: DeepInfra API key
+      customApiConfig:
+        type: object
+        properties:
+          apiKey:
+            type: string
+          baseUrl:
+            type: string
+          parameters:
+            type: object
   commandFunction:
     # A function that produces the CLI command to start the MCP on stdio.
     |-
